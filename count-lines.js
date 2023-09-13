@@ -6,7 +6,7 @@ const token = "github_pat_...";
 const apiUrl = "https://api.github.com";
 
 // Function to fetch all repositories for a user
-async function getAllRepositories() {
+async function getAllRepositories(username) {
   try {
     const response = await fetch(`${apiUrl}/users/${username}/repos`, {
       headers: {
@@ -21,11 +21,30 @@ async function getAllRepositories() {
   }
 }
 
+// Function to fetch all repositories for a GitHub organization
+async function getOrganizationRepositories(organization) {
+  try {
+    const response = await fetch(`${apiUrl}/orgs/${organization}/repos`, {
+      headers: {
+        Authorization: `token ${token}`,
+      },
+    });
+    const repositories = await response.json();
+    return repositories;
+  } catch (error) {
+    console.error(
+      `Error fetching organization repositories for ${organization}:`,
+      error
+    );
+    throw error;
+  }
+}
+
 // Function to count lines of code in a repository
 async function countLinesOfCode(repository) {
   try {
     const response = await fetch(
-      `${apiUrl}/repos/${username}/${repository.name}/languages`,
+      `${apiUrl}/repos/${repository.full_name}/languages`,
       {
         headers: {
           Authorization: `token ${token}`,
@@ -42,24 +61,38 @@ async function countLinesOfCode(repository) {
     );
 
     console.log(
-      `Repository: ${repository.name}, Lines of Code: ${linesOfCode}`
+      `Repository: ${repository.full_name}, Lines of Code: ${linesOfCode}`
     );
     return linesOfCode;
   } catch (error) {
-    console.error(`Error counting lines of code in ${repository.name}:`, error);
+    console.error(
+      `Error counting lines of code in ${repository.full_name}:`,
+      error
+    );
     return 0;
   }
 }
 
 // Main function to fetch and count lines of code in all repositories
 async function countLinesOfCodeInAllRepositories() {
-  const repositories = await getAllRepositories();
+  const personalRepositories = await getAllRepositories(username);
 
   let totalLinesOfCode = 0;
-  for (const repository of repositories) {
+
+  // Count lines of code in personal repositories
+  for (const repository of personalRepositories) {
     totalLinesOfCode += await countLinesOfCode(repository);
   }
 
+  // Include repositories from organizations
+  const organizations = ["..."];
+
+  for (const org of organizations) {
+    const orgRepositories = await getOrganizationRepositories(org);
+    for (const repository of orgRepositories) {
+      totalLinesOfCode += await countLinesOfCode(repository);
+    }
+  }
   console.log(`Total Lines of Code in All Repositories: ${totalLinesOfCode}`);
 }
 
